@@ -1,12 +1,15 @@
-import pytube
+import youtube_dl
 import pyaudio
 import socket
 import threading
+import os
 
 def download_audio(youtube_url):
-    yt = pytube.YouTube(youtube_url)
-    audio_stream = yt.streams.filter(only_audio=True).first()
-    return audio_stream.download()
+    ydl_opts = {'format': 'bestaudio'}
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(youtube_url, download=True)
+        audio_file = ydl.prepare_filename(info)
+    return audio_file
 
 def send_audio(connection, audio_file):
     CHUNK = 1024
@@ -20,6 +23,7 @@ def handle_client(client_socket):
     youtube_url = client_socket.recv(1024).decode()
     audio_file = download_audio(youtube_url)
     send_audio(client_socket, audio_file)
+    os.remove(audio_file)
     client_socket.close()
 
 def start_server(host, port):
